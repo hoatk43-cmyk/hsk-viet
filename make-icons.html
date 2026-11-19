@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tạo icon và ảnh chia sẻ – HSK Việt</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Nunito:wght@800&family=Noto+Sans+SC:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #f7faef;
+        color: #40543b;
+        font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      }
+      h1 {
+        font-family: Nunito, sans-serif;
+        font-weight: 800;
+        font-size: 26px;
+        margin: 0 0 6px;
+      }
+      #grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        margin-top: 18px;
+        align-items: flex-start;
+      }
+      .item {
+        background: #fffdf8;
+        border: 1px solid #dbe9c9;
+        border-radius: 18px;
+        padding: 14px;
+        box-shadow: 0 6px 22px rgba(64, 84, 59, 0.08);
+      }
+      .item canvas {
+        display: block;
+        height: auto;
+        border-radius: 10px;
+        border: 1px solid #dbe9c9;
+        background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 0 0 / 16px
+          16px;
+      }
+      .name {
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      button {
+        margin-top: 10px;
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 18px;
+        background: #a9ca8d;
+        color: #22331e;
+        font: 800 14px Nunito, sans-serif;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #8daf70;
+      }
+      .mu {
+        color: #5f7356;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tạo icon và ảnh chia sẻ cho HSK Việt</h1>
+    <div class="mu" id="status">Đang vẽ, chờ vài giây…</div>
+    <div id="grid"></div>
+    <script>
+      const LOGO = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64"><rect x="1" y="1" width="62" height="62" rx="16" fill="#A9CA8D"/><rect x="3" y="3" width="58" height="58" rx="14" fill="none" stroke="#FFFDF8" stroke-opacity="0.6" stroke-width="1.5"/><g fill="none" stroke="#2F4229" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 17.5L19.5 20.5"/><path d="M13.5 27L17.5 30"/><path d="M13.5 45.5L21 35.5"/><path d="M29 19H47.5C44.5 31 38.5 41 30 48.5"/><path d="M33.5 27C38.5 35.5 45 43.5 52 47.5"/></g><path d="M52 13.5C51.5 10.5 52.3 8.1 53.7 6.5C54.7 7.8 55.3 8.8 55.7 9.8C56.1 8.8 56.7 7.8 57.7 6.5C59.1 8.1 59.9 10.5 59.4 13.5C59 16 57.4 17.5 55.7 17.5C54 17.5 52.4 16 52 13.5Z" fill="#F6CAD6" stroke="#BF7C91" stroke-width="0.8" stroke-linejoin="round"/></svg>`;
+      const P = {
+        pink: ['#FDEEF2', '#F6CAD6', '#E6A3B6', '#BF7C91'],
+        peach: ['#FFF1EB', '#F9D3C6', '#EEAE9B', '#C98875'],
+        cream: ['#FFFDF7', '#F8EEDC', '#EAD7B7', '#C2A780'],
+        blush: ['#FFF6F8', '#F9DEE6', '#EDBDCB', '#C69AA8'],
+        butter: ['#FFFAE8', '#FCEBC5', '#F1D497', '#C59F5B'],
+      };
+      const r2 = (n) => Math.round(n * 100) / 100;
+      const pt = (cx, cy, r, a) => [
+        r2(cx + r * Math.cos(a)),
+        r2(cy + r * Math.sin(a)),
+      ];
+      function crescent(cx, cy, r, a, span, thick) {
+        const [ax, ay] = pt(cx, cy, r, a),
+          [bx, by] = pt(cx, cy, r, a + span);
+        const [qx, qy] = pt(
+          cx,
+          cy,
+          2 * r * (1 - thick) - r * Math.cos(span / 2),
+          a + span / 2
+        );
+        return `M${ax} ${ay}A${r2(r)} ${r2(
+          r
+        )} 0 0 1 ${bx} ${by}Q${qx} ${qy} ${ax} ${ay}Z`;
+      }
+      const defs = (id, c) =>
+        `<linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient><linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[2]}"/></linearGradient><radialGradient id="${id}r" gradientUnits="userSpaceOnUse" cx="50" cy="50" r="48"><stop offset="0" stop-color="${c[2]}"/><stop offset="0.55" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[0]}"/></radialGradient>`;
+      const leaf = (x, y, rot, L, w) =>
+        `<g transform="translate(${x} ${y}) rotate(${rot})"><path d="M0 0C${
+          L * 0.25
+        } ${-w} ${L * 0.7} ${-w} ${L} 0C${L * 0.7} ${w * 0.8} ${L * 0.25} ${
+          w * 0.8
+        } 0 0Z" fill="url(#lf)" stroke="#6A8B53" stroke-opacity=".45" stroke-width=".6"/></g>`;
+      function tulip(id, c, x, y, rot, s) {
+        return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s}) translate(-51 -166)"><path d="M50 64C50 92 48 122 51 166" stroke="#8DAF70" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M50 160C33 140 25 112 31 84C41 104 47 128 50 150Z" fill="url(#lf)" stroke="#6A8B53" stroke-opacity=".45" stroke-width=".7"/><path d="M52 166C68 146 76 120 70 94C62 114 56 136 52 156Z" fill="url(#lf)" stroke="#6A8B53" stroke-opacity=".45" stroke-width=".7"/><g stroke="${c[3]}" stroke-opacity=".5" stroke-width=".8" stroke-linejoin="round"><path d="M38 32C40 22 43 14 45 8C48 14 50 21 50 30Z" fill="${c[2]}"/><path d="M62 32C60 22 57 14 55 8C52 14 50 21 50 30Z" fill="${c[2]}"/><path d="M47 65C35 64 26 54 26 40C26 29 30 19 37 13C40 22 43 32 44 44C45 54 46 60 47 65Z" fill="url(#${id}b)"/><path d="M53 65C65 64 74 54 74 40C74 29 70 19 63 13C60 22 57 32 56 44C55 54 54 60 53 65Z" fill="url(#${id}b)"/><path d="M50 66C40 65 35 54 36 40C37 28 43 18 50 12C57 18 63 28 64 40C65 54 60 65 50 66Z" fill="url(#${id}a)"/></g><path d="M50 18C48.6 32 48.6 48 50 61M41 28C38.5 39 39 50 42.5 58" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1" stroke-linecap="round"/></g>`;
+      }
+      function rose(id, c, x, y, s) {
+        let g = '';
+        for (let k = 0; k < 6; k++) {
+          const a = (k * Math.PI) / 3 + 0.3,
+            [lx, ly] = pt(50, 50, 28, a - 0.6),
+            [rx, ry] = pt(50, 50, 28, a + 0.6),
+            [ax, ay] = pt(50, 50, 52, a - 0.34),
+            [bx, by] = pt(50, 50, 52, a + 0.34),
+            [tx, ty] = pt(50, 50, 44.5, a);
+          g += `<path d="M50 50L${lx} ${ly}Q${ax} ${ay} ${tx} ${ty}Q${bx} ${by} ${rx} ${ry}Z" fill="url(#${id}a)" stroke="${c[3]}" stroke-opacity=".45" stroke-width=".8"/>`;
+        }
+        for (let i = 14; i >= 0; i--) {
+          const t = i / 14;
+          g += `<path d="${crescent(
+            50,
+            50,
+            5 + t * 37,
+            i * 2.39996,
+            2.05 + t * 0.85,
+            0.56 - t * 0.14
+          )}" fill="url(#${id}r)" stroke="${
+            c[3]
+          }" stroke-opacity=".5" stroke-width=".7"/>`;
+        }
+        return `<g transform="translate(${x} ${y}) scale(${s}) translate(-50 -50)">${g}<circle cx="50" cy="50" r="2.4" fill="${c[2]}"/></g>`;
+      }
+      function ranun(id, c, x, y, s) {
+        let g = `<circle cx="50" cy="50" r="46" fill="${c[0]}" stroke="${c[3]}" stroke-opacity=".35" stroke-width=".8"/>`;
+        [45, 40, 35, 30.5, 26, 21.8, 17.8, 14].forEach((r, k) => {
+          const n = 8 + (k % 2),
+            span = ((2 * Math.PI) / n) * 1.32;
+          for (let j = 0; j < n; j++)
+            g += `<path d="${crescent(
+              50,
+              50,
+              r,
+              k * 0.41 + (j * 2 * Math.PI) / n,
+              span,
+              0.2
+            )}" fill="url(#${id}r)" stroke="${c[3]}" stroke-opacity="${(
+              0.28 +
+              k * 0.04
+            ).toFixed(2)}" stroke-width=".6"/>`;
+        });
+        g += `<circle cx="50" cy="50" r="9.5" fill="#CFE0BD" stroke="#6A8B53" stroke-opacity=".5" stroke-width=".6"/><circle cx="50" cy="51.5" r="1.3" fill="#6A8B53" opacity=".6"/>`;
+        return `<g transform="translate(${x} ${y}) scale(${s}) translate(-50 -50)">${g}</g>`;
+      }
+      function flowerSVG() {
+        const pal = {
+          t0: P.peach,
+          t1: P.cream,
+          t2: P.pink,
+          t3: P.butter,
+          t4: P.blush,
+          ro: P.pink,
+          ra: P.peach,
+          rb: P.cream,
+        };
+        let d = `<linearGradient id="lf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D7E8C5"/><stop offset="1" stop-color="#8DAF70"/></linearGradient>`;
+        Object.keys(pal).forEach((k) => {
+          d += defs(k, pal[k]);
+        });
+        let b = `<rect width="1200" height="630" fill="#F7FAEF"/><circle cx="1090" cy="70" r="270" fill="#E4F0D1"/><circle cx="1170" cy="600" r="210" fill="#F5DCE4" opacity=".75"/><circle cx="60" cy="640" r="170" fill="#FBE9CD" opacity=".75"/><circle cx="40" cy="30" r="110" fill="#F5DCE4" opacity=".45"/>`;
+        b +=
+          leaf(860, 160, 200, 70, 18) +
+          leaf(1150, 230, -20, 64, 16) +
+          leaf(980, 262, 120, 60, 16);
+        b +=
+          ranun('rb', pal.rb, 1075, 215, 1.0) +
+          rose('ro', pal.ro, 1135, 110, 0.95) +
+          ranun('ra', pal.ra, 945, 165, 1.25);
+        [
+          [-30, 1.7, 't0'],
+          [26, 1.68, 't1'],
+          [-13, 1.86, 't2'],
+          [12, 1.82, 't3'],
+          [-1, 1.96, 't4'],
+        ].forEach(([a, s, id]) => {
+          b += tulip(id, pal[id], 1005, 660, a, s);
+        });
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><defs>${d}</defs>${b}</svg>`;
+      }
+      const svgImg = (svg) =>
+        new Promise((res, rej) => {
+          const im = new Image();
+          im.onload = () => res(im);
+          im.onerror = () => rej(new Error('không tải được hình'));
+          im.src = URL.createObjectURL(
+            new Blob([svg], { type: 'image/svg+xml' })
+          );
+        });
+      async function fontsReady() {
+        const f = [
+          '800 104px Nunito',
+          '600 40px "Be Vietnam Pro"',
+          '500 32px "Be Vietnam Pro"',
+          '400 22px "Be Vietnam Pro"',
+          '500 30px "Noto Sans SC"',
+        ];
+        try {
+          await Promise.race([
+            Promise.all(
+              f.map((x) =>
+                document.fonts.load(
+                  x,
+                  x.includes('Noto') ? '每天进步一点点' : 'HSK Việt Tự học'
+                )
+              )
+            ),
+            new Promise((r) => setTimeout(r, 5000)),
+          ]);
+        } catch (e) {}
+      }
+      function add(canvas, name, label, w) {
+        const d = document.createElement('div');
+        d.className = 'item';
+        const n = document.createElement('div');
+        n.className = 'name';
+        n.textContent = label;
+        canvas.style.width = w + 'px';
+        const b = document.createElement('button');
+        b.textContent = 'Tải về ' + name;
+        b.onclick = () =>
+          canvas.toBlob((blob) => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }, 'image/png');
+        d.append(n, canvas, b);
+        document.getElementById('grid').append(d);
+      }
+      function icon(logo, size, name, label, fill, scale) {
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        const g = c.getContext('2d');
+        if (fill) {
+          g.fillStyle = '#A9CA8D';
+          g.fillRect(0, 0, size, size);
+        }
+        const s = size * scale,
+          o = (size - s) / 2;
+        g.drawImage(logo, o, o, s, s);
+        add(c, name, label, Math.min(size, 180));
+      }
+      function pill(g, x, y, w, h, r) {
+        g.beginPath();
+        g.moveTo(x + r, y);
+        g.arcTo(x + w, y, x + w, y + h, r);
+        g.arcTo(x + w, y + h, x, y + h, r);
+        g.arcTo(x, y + h, x, y, r);
+        g.arcTo(x, y, x + w, y, r);
+        g.closePath();
+      }
+      function og(logo, flowers) {
+        const c = document.createElement('canvas');
+        c.width = 1200;
+        c.height = 630;
+        const g = c.getContext('2d');
+        g.drawImage(flowers, 0, 0, 1200, 630);
+        g.drawImage(logo, 90, 90, 132, 132);
+        g.fillStyle = '#B5546A';
+        g.font = '500 30px "Noto Sans SC", sans-serif';
+        g.fillText('每天进步一点点', 248, 148);
+        g.fillStyle = '#5F7356';
+        g.font = '400 22px "Be Vietnam Pro", sans-serif';
+        g.fillText('Mỗi ngày tiến bộ một chút', 248, 188);
+        g.fillStyle = '#40543B';
+        g.font = '800 104px Nunito, sans-serif';
+        g.fillText('HSK Việt', 84, 340);
+        g.font = '600 40px "Be Vietnam Pro", sans-serif';
+        g.fillText('Tự học tiếng Trung HSK 1–9', 90, 408);
+        g.fillStyle = '#5F7356';
+        g.font = '500 32px "Be Vietnam Pro", sans-serif';
+        g.fillText('bằng tiếng Việt · lộ trình HSK 3.0', 90, 458);
+        let x = 90;
+        g.font = '600 22px "Be Vietnam Pro", sans-serif';
+        ['Từ vựng', 'Ngữ pháp', 'Phát âm', 'Luyện viết', 'Thi thử'].forEach(
+          (t) => {
+            const w = g.measureText(t).width + 30;
+            g.fillStyle = '#E4F0D1';
+            pill(g, x, 504, w, 44, 22);
+            g.fill();
+            g.fillStyle = '#4F7A3D';
+            g.fillText(t, x + 15, 534);
+            x += w + 10;
+          }
+        );
+        add(c, 'og-image.png', 'Ảnh khi chia sẻ link – 1200×630', 600);
+      }
+      (async () => {
+        const status = document.getElementById('status');
+        try {
+          const logo = await svgImg(LOGO),
+            flowers = await svgImg(flowerSVG());
+          await fontsReady();
+          icon(
+            logo,
+            180,
+            'apple-touch-icon.png',
+            'iPhone, iPad – 180×180',
+            true,
+            1
+          );
+          icon(logo, 192, 'icon-192.png', 'Android – 192×192', false, 1);
+          icon(logo, 512, 'icon-512.png', 'Android – 512×512', false, 1);
+          icon(
+            logo,
+            512,
+            'icon-maskable-512.png',
+            'Android, icon tự bo tròn – 512×512',
+            true,
+            0.8
+          );
+          og(logo, flowers);
+          status.textContent = 'Xong! Bấm nút dưới từng ảnh để tải về (5 ảnh).';
+        } catch (e) {
+          status.textContent = 'Có lỗi khi vẽ: ' + e.message;
+        }
+      })();
+    </script>
+  </body>
+</html>
